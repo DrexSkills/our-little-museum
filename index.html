@@ -170,6 +170,21 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
 .topr{display:flex;gap:10px}
 .brand b{white-space:nowrap}
 @media (max-width:370px){.brand b{display:none}.brand{padding:6px}}
+.finale{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 32px) 28px calc(env(safe-area-inset-bottom,0px) + 32px);background:radial-gradient(120% 80% at 50% 35%,#7E1F2C 0%,#4A1019 55%,#260810 100%);color:#FCF3E4;opacity:0;pointer-events:none;transition:opacity 1.6s ease;overflow:hidden}
+.finale.on{opacity:1;pointer-events:auto}
+.finale .ln{opacity:0;transform:translateY(14px);transition:opacity 1.4s ease,transform 1.4s ease;max-width:22em;position:relative;z-index:1}
+.finale.on .ln{opacity:1;transform:none}
+.finale .k{font:600 12px/1.4 Figtree,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#E3AE4F;margin:0 0 14px}
+.finale h2{font:italic 400 clamp(30px,8.5vw,44px)/1.1 Fraunces,Georgia,serif;margin:0 0 26px}
+.finale p{font:400 17px/1.55 Figtree,system-ui,sans-serif;margin:0 0 12px;color:#F6E3D0}
+.finale .tbc{font:italic 500 clamp(24px,7vw,32px)/1.2 Fraunces,Georgia,serif;color:#F3C8CF;margin:22px 0 10px}
+.finale .sig{font:400 14px/1.4 Figtree,system-ui,sans-serif;color:#E3AE4F;opacity:.9;margin:0 0 30px}
+.finale .acts{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.finale button{font:600 15px Figtree,system-ui,sans-serif;border-radius:999px;padding:13px 22px;border:1.5px solid #E3AE4F;background:#E3AE4F;color:#3A0C14;cursor:pointer}
+.finale button.ghost{background:transparent;color:#FCF3E4;border-color:rgba(252,243,228,.45)}
+.finale .glow{position:absolute;bottom:-20px;font-size:14px;color:#F3C8CF;opacity:0;animation:rise linear infinite;z-index:0}
+@keyframes rise{0%{transform:translateY(0) scale(.7);opacity:0}15%{opacity:.7}100%{transform:translateY(-110vh) scale(1.15);opacity:0}}
+@media (prefers-reduced-motion:reduce){.finale .glow{display:none}.finale .ln{transition:opacity .4s}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
 </style>
 </head>
@@ -226,6 +241,15 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
   </button>
   <button class="a2hs" id="a2hsIntro"><img src="icons/apple-touch-icon.png" alt="">Add to your Home Screen</button>
   <div class="loading" id="loading">Hanging the pictures…</div>
+</section>
+
+<section class="finale" id="finale" role="dialog" aria-modal="true" aria-label="The end, for now">
+  <div class="ln" style="transition-delay:.6s"><div class="k">thank you for visiting</div><h2>Our Little Museum</h2></div>
+  <p class="ln" style="transition-delay:2.2s">This is only the first wing.</p>
+  <p class="ln" style="transition-delay:3.8s">Every new day with you is another picture I get to hang on these walls.</p>
+  <div class="ln tbc" style="transition-delay:5.6s">To be continued… ♥</div>
+  <div class="ln sig" style="transition-delay:6.8s">made for Isra, with all my love</div>
+  <div class="ln acts" style="transition-delay:7.6s"><button id="finAgain">Walk through again</button><button class="ghost" id="finClose">Stay a while</button></div>
 </section>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Picture up close">
@@ -504,6 +528,7 @@ const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d;}
 
 function goTo(i, instant=false){
+  if(i>N){ if(cur>=N) openFinale(); return; }
   i=Math.max(0,Math.min(N,i));
   const prevI=cur; cur=i;
   const to=stopFor(i);
@@ -520,9 +545,9 @@ function goTo(i, instant=false){
 
 function updatePlaque(){
   $("prev").disabled = cur<=0;
-  $("next").disabled = cur>=N;
-  if(cur>=N){ $("pNo").textContent="Day 30"; $("pTitle").textContent="Happy 30 days, my love"; $("pMed").textContent="I wish for so many more to come"; setTimeout(hearts,1100); }
-  else { const e=EX[cur]; $("pNo").textContent=`No. ${cur+1} of ${N}`; $("pTitle").textContent=e.t; $("pMed").textContent=e.m; }
+  $("next").disabled = false;
+  if(cur>=N){ $("pNo").textContent="Day 30"; $("pTitle").textContent="Happy 30 days, my love"; $("pMed").textContent="I wish for so many more to come · tap for one last thing ♥"; setTimeout(hearts,1100); clearTimeout(finaleTimer); finaleTimer=setTimeout(()=>{ if(cur>=N&&!$("lb").classList.contains("on")&&!document.querySelector(".sheet.on")) openFinale(); },6500); }
+  else { clearTimeout(finaleTimer); const e=EX[cur]; $("pNo").textContent=`No. ${cur+1} of ${N}`; $("pTitle").textContent=e.t; $("pMed").textContent=e.m; }
   document.querySelectorAll(".thumb").forEach((t,k)=>t.classList.toggle("cur",k===cur));
 }
 
@@ -549,7 +574,7 @@ function tap(x,y){
 }
 $("prev").onclick=()=>{goTo(cur-1);dismissHint();};
 $("next").onclick=()=>{goTo(cur+1);dismissHint();};
-$("plaque").onclick=()=>{ if(cur<N) openLB(cur); else openIndex(); };
+$("plaque").onclick=()=>{ if(cur<N) openLB(cur); else openFinale(); };
 addEventListener("keydown",e=>{
   if(!entered) return;
   if($("lb").classList.contains("on")){ if(e.key==="Escape") closeLB(); if(e.key==="ArrowRight"&&cur<N-1){closeLB();goTo(cur+1);} return; }
@@ -557,6 +582,24 @@ addEventListener("keydown",e=>{
   if(e.key==="ArrowLeft") goTo(cur-1);
   if(e.key==="Enter"&&cur<N&&document.activeElement===canvas) openLB(cur);
 });
+
+/* ---------- finale ---------- */
+let finaleTimer=null;
+function openFinale(){
+  clearTimeout(finaleTimer);
+  const f=$("finale"); if(f.classList.contains("on")) return;
+  if($("lb").classList.contains("on")) closeLB();
+  f.querySelectorAll(".glow").forEach(g=>g.remove());
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+    for(let i=0;i<18;i++){ const g=document.createElement("span"); g.className="glow"; g.setAttribute("aria-hidden","true"); g.textContent=i%3?"✦":"♥"; g.style.left=(Math.random()*96)+"%"; g.style.fontSize=(10+Math.random()*16)+"px"; g.style.animationDuration=(9+Math.random()*8)+"s"; g.style.animationDelay=(Math.random()*9)+"s"; f.appendChild(g); }
+  }
+  f.classList.add("on"); Music.swell();
+  setTimeout(()=>$("finAgain").focus({preventScroll:true}),7800);
+}
+function closeFinale(){ $("finale").classList.remove("on"); Music.swell(false); canvas.focus(); }
+$("finAgain").onclick=()=>{ closeFinale(); setTimeout(()=>goTo(0),500); };
+$("finClose").onclick=closeFinale;
+addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("finale").classList.contains("on")) closeFinale(); });
 
 /* ---------- day 30 hearts ---------- */
 let heartsShown=false;
@@ -654,10 +697,11 @@ const Music=(()=>{
     syncBtn();
   }
   function duck(on){ if(!ctx) return; duckG.gain.cancelScheduledValues(ctx.currentTime); duckG.gain.setValueAtTime(duckG.gain.value,ctx.currentTime); duckG.gain.linearRampToValueAtTime(on?0:1,ctx.currentTime+(on?.4:1.5)); }
+  function swell(up=true){ if(!ctx||!playing) return; const t=ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value,t); master.gain.linearRampToValueAtTime(up?1.05:.85,t+(up?2.5:2)); if(up){ const c=CH[step%CH.length]; [c[0]+24,c[1]+24,c[2]+12,c[3]+12,c[2]+24].forEach((m,k)=>piano(m,t+.3+k*.35,.09,4)); } }
   function chime(){ if(!ctx||!playing) return; const t=ctx.currentTime+.05; [84,88,91,96,91,88,96].forEach((m,k)=>piano(m,t+k*.16,.07,2.4)); }
   function syncBtn(){ const b=$("musicBtn"); if(!b) return; b.setAttribute("aria-pressed",playing?"true":"false"); b.setAttribute("aria-label",playing?"Turn music off":"Turn music on"); b.classList.toggle("muted",!playing); }
   document.addEventListener("visibilitychange",()=>{ if(!ctx) return; if(document.hidden){ ctx.suspend(); } else if(playing){ ctx.resume(); } });
-  return {start,stop,duck,chime,get on(){return playing;},syncBtn};
+  return {start,stop,duck,chime,swell,get on(){return playing;},syncBtn};
 })();
 function musicPref(){ try{ return localStorage.getItem("museum-music")!=="off"; }catch(e){ return true; } }
 $("musicBtn").onclick=()=>{ if(Music.on){ Music.stop(); try{localStorage.setItem("museum-music","off");}catch(e){} } else { Music.start(); try{localStorage.setItem("museum-music","on");}catch(e){} } };
@@ -739,7 +783,7 @@ resize();
   $("hsGo").onclick=async()=>{ if(deferred&&!isIOS){ deferred.prompt(); try{await deferred.userChoice;}catch(e){} deferred=null; } close(); };
   // gentle one-time nudge after a little wandering
   let asked=false; try{asked=localStorage.getItem("museum-a2hs")==="1";}catch(e){}
-  if(!asked) setTimeout(()=>{ if(entered && !$("lb").classList.contains("on") && !$("sheet").classList.contains("on")){ open(); try{localStorage.setItem("museum-a2hs","1");}catch(e){} } },45000);
+  if(!asked) setTimeout(()=>{ if(entered && !$("lb").classList.contains("on") && !$("sheet").classList.contains("on") && !$("finale").classList.contains("on")){ open(); try{localStorage.setItem("museum-a2hs","1");}catch(e){} } },45000);
 })();
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 
