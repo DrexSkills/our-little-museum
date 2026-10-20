@@ -100,6 +100,10 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
 .intro{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:24px 24px calc(env(safe-area-inset-bottom,0px) + 40px);text-align:center;color:#FFF6F0;background:linear-gradient(to bottom,rgba(42,18,21,0) 25%,rgba(42,18,21,.55) 55%,rgba(42,18,21,.92) 100%);transition:opacity .8s}
 .intro.gone{opacity:0;pointer-events:none}
 .intro .seal{width:96px;height:96px;margin-bottom:14px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35))}
+.day30{display:inline-block;margin-bottom:14px;padding:7px 15px;border-radius:999px;background:#E3AE4F;color:#4E1019;font-weight:600;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.hearts{position:fixed;inset:0;pointer-events:none;z-index:7;overflow:hidden}
+.hearts span{position:absolute;bottom:-50px;opacity:0;animation-name:floatUp;animation-timing-function:ease-out;animation-fill-mode:forwards}
+@keyframes floatUp{0%{transform:translateY(0) rotate(-10deg);opacity:0}12%{opacity:1}100%{transform:translateY(-105vh) rotate(20deg);opacity:0}}
 .intro h1{font-family:var(--font-d);font-weight:600;font-size:clamp(40px,12vw,64px);line-height:.95;margin:0;letter-spacing:-.025em}
 .intro h1 em{font-style:italic;font-weight:400;display:block;font-size:.62em;color:#F3C8CF;letter-spacing:-.01em;margin-bottom:6px}
 .intro p{max-width:30ch;margin:14px auto 26px;font-size:15.5px;line-height:1.5;color:#F6DCD7}
@@ -207,6 +211,7 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
 
 <section class="intro" id="intro">
   <svg class="seal" aria-hidden="true"><use href="#seal"/></svg>
+  <div class="day30">Celebrating our 30th day ♥</div>
   <h1><em>welcome to</em>Our Little Museum</h1>
   <p>A gallery of two. Open every day, admission free for exactly two people.</p>
   <button class="enter" id="enter">Step inside
@@ -400,7 +405,7 @@ async function build(){
   [-1.5,1.5].forEach(x=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.6),new THREE.MeshBasicMaterial({color:"#C9A04E"}));r.position.set(x,4.15,Z0+2.4);scene.add(r);});
 
   // end sign
-  const et=signTex([["the end of the hallway,","italic 400 54px Fraunces, Georgia, serif",120,"#F3C8CF"],["not of us","600 104px Fraunces, Georgia, serif",235],["more pictures coming soon  ♥","500 34px Figtree, sans-serif",305,"#E3AE4F"]]);
+  const et=signTex([["happy","italic 400 54px Fraunces, Georgia, serif",112,"#F3C8CF"],["30 days of us","600 100px Fraunces, Georgia, serif",225],["and I wish for so many more to come  ♥","500 32px Figtree, sans-serif",300,"#E3AE4F"]]);
   const es=new THREE.Mesh(new THREE.PlaneGeometry(4.2,1.48), new THREE.MeshBasicMaterial({map:et}));
   es.position.set(0,2.15,END_Z+.02); scene.add(es);
 
@@ -508,7 +513,7 @@ function goTo(i, instant=false){
 function updatePlaque(){
   $("prev").disabled = cur<=0;
   $("next").disabled = cur>=N;
-  if(cur>=N){ $("pNo").textContent="The end, for now"; $("pTitle").textContent="To be continued"; $("pMed").textContent="Tap the grid to see everything again"; }
+  if(cur>=N){ $("pNo").textContent="Day 30"; $("pTitle").textContent="Happy 30 days, my love"; $("pMed").textContent="I wish for so many more to come"; setTimeout(hearts,1100); }
   else { const e=EX[cur]; $("pNo").textContent=`No. ${cur+1} of ${N}`; $("pTitle").textContent=e.t; $("pMed").textContent=e.m; }
   document.querySelectorAll(".thumb").forEach((t,k)=>t.classList.toggle("cur",k===cur));
 }
@@ -544,6 +549,16 @@ addEventListener("keydown",e=>{
   if(e.key==="ArrowLeft") goTo(cur-1);
   if(e.key==="Enter"&&cur<N&&document.activeElement===canvas) openLB(cur);
 });
+
+/* ---------- day 30 hearts ---------- */
+let heartsShown=false;
+function hearts(){
+  if(heartsShown||cur<N||matchMedia("(prefers-reduced-motion: reduce)").matches) return; heartsShown=true;
+  const box=document.createElement("div"); box.className="hearts"; box.setAttribute("aria-hidden","true");
+  const cols=["#E88A9A","#C7475B","#F3C8CF","#E3AE4F"];
+  for(let i=0;i<28;i++){const h=document.createElement("span"); h.textContent="♥"; h.style.left=(Math.random()*96)+"%"; h.style.fontSize=(14+Math.random()*28)+"px"; h.style.animationDelay=(Math.random()*1.8)+"s"; h.style.animationDuration=(3.2+Math.random()*2.6)+"s"; h.style.color=cols[i%4]; box.appendChild(h);}
+  document.body.appendChild(box); setTimeout(()=>box.remove(),9000);
+}
 
 /* ---------- lightbox ---------- */
 function openLB(i){
