@@ -164,6 +164,12 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
 .hs-scrim{position:fixed;inset:0;z-index:24;background:rgba(20,8,10,.45);opacity:0;pointer-events:none;transition:opacity .4s}
 .hs-scrim.on{opacity:1;pointer-events:auto}
 
+#musicBtn .slash{display:none}
+#musicBtn.muted .slash{display:inline}
+#musicBtn.muted{opacity:.85}
+.topr{display:flex;gap:10px}
+.brand b{white-space:nowrap}
+@media (max-width:370px){.brand b{display:none}.brand{padding:6px}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
 </style>
 </head>
@@ -190,6 +196,7 @@ button:focus-visible,.thumb:focus-visible{outline:3px solid var(--mustard);outli
 <div class="top">
   <div class="brand"><svg aria-hidden="true"><use href="#seal"/></svg><b>Our Little Museum</b></div>
   <div style="display:flex;gap:10px">
+  <button class="iconbtn muted" id="musicBtn" aria-label="Turn music on" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/><path class="slash" d="M3 3l18 18"/></svg></button>
   <button class="iconbtn" id="a2hsTop" aria-label="Add to your Home Screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg></button>
   <button class="iconbtn" id="openIndex" aria-label="See all pictures">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M17 14.2c-.8-1.4-3-1.2-3 .5 0 1.3 1.6 2.3 3 3.4 1.4-1.1 3-2.1 3-3.4 0-1.7-2.2-1.9-3-.5z" fill="currentColor" stroke="none"/></svg>
@@ -554,6 +561,7 @@ addEventListener("keydown",e=>{
 /* ---------- day 30 hearts ---------- */
 let heartsShown=false;
 function hearts(){
+  if(cur>=N) Music.chime();
   if(heartsShown||cur<N||matchMedia("(prefers-reduced-motion: reduce)").matches) return; heartsShown=true;
   const box=document.createElement("div"); box.className="hearts"; box.setAttribute("aria-hidden","true");
   const cols=["#E88A9A","#C7475B","#F3C8CF","#E3AE4F"];
@@ -564,12 +572,12 @@ function hearts(){
 /* ---------- lightbox ---------- */
 function openLB(i){
   const e=EX[i], m=$("lbMedia"); m.innerHTML="";
-  if(e.video){ const v=document.createElement("video"); v.src=A.v.url; v.controls=true; v.playsInline=true; v.setAttribute("playsinline",""); v.autoplay=true; v.poster=A.vposter.d; m.appendChild(v); v.play().catch(()=>{}); if(videoEl) videoEl.pause(); }
+  if(e.video){ const v=document.createElement("video"); v.src=A.v.url; v.controls=true; v.playsInline=true; v.setAttribute("playsinline",""); v.autoplay=true; v.poster=A.vposter.d; m.appendChild(v); v.play().catch(()=>{}); if(videoEl) videoEl.pause(); Music.duck(true); }
   else { const im=new Image(); im.src=A[e.a].d; im.alt=e.t; m.appendChild(im); }
   $("lbNo").textContent=`No. ${i+1} of ${N}`; $("lbTitle").textContent=e.t; $("lbMed").textContent=e.m; $("lbNote").textContent=e.n;
   $("lb").classList.add("on"); $("lbClose").focus();
 }
-function closeLB(){ $("lb").classList.remove("on"); const v=$("lbMedia").querySelector("video"); if(v) v.pause(); if(videoEl&&cur===VIDX) videoEl.play().catch(()=>{}); setTimeout(()=>{ if(!$("lb").classList.contains("on")) $("lbMedia").innerHTML=""; },400); canvas.focus(); }
+function closeLB(){ $("lb").classList.remove("on"); Music.duck(false); const v=$("lbMedia").querySelector("video"); if(v) v.pause(); if(videoEl&&cur===VIDX) videoEl.play().catch(()=>{}); setTimeout(()=>{ if(!$("lb").classList.contains("on")) $("lbMedia").innerHTML=""; },400); canvas.focus(); }
 $("lbClose").onclick=closeLB;
 $("lb").addEventListener("click",e=>{ if(e.target.id==="lb") closeLB(); });
 
@@ -588,11 +596,80 @@ function openIndex(){ $("sheet").classList.add("on"); $("scrim").classList.add("
 function closeIndex(){ $("sheet").classList.remove("on"); $("scrim").classList.remove("on"); }
 $("openIndex").onclick=openIndex; $("closeIndex").onclick=closeIndex; $("scrim").onclick=closeIndex;
 
+/* ---------- music (original, generated live) ---------- */
+const Music=(()=>{
+  let ctx=null, master=null, bus=null, verb=null, playing=false, timer=null, nextT=0, step=0, duckG=null;
+  const BEAT=60/62;
+  const CH=[[48,55,64,71],[45,52,60,67],[41,48,57,64],[43,50,59,62],[48,55,64,71],[45,52,60,67],[38,45,53,60],[43,50,55,59]];
+  const MEL=[[76,null,74,72],[72,null,71,69],[69,72,76,null],[74,null,null,71],[76,79,null,76],[72,null,74,76],[77,null,76,74],[74,null,71,null]];
+  const hz=m=>440*Math.pow(2,(m-69)/12);
+  function impulse(sec=3.6){const r=ctx.sampleRate,l=Math.floor(r*sec),b=ctx.createBuffer(2,l,r);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/l,2.6);}return b;}
+  function init(){
+    if(ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    try{ if(navigator.audioSession) navigator.audioSession.type="playback"; }catch(e){}
+    ctx=new AC();
+    master=ctx.createGain(); master.gain.value=0;
+    duckG=ctx.createGain(); duckG.gain.value=1;
+    bus=ctx.createGain(); bus.gain.value=.9;
+    verb=ctx.createConvolver(); verb.buffer=impulse();
+    const wet=ctx.createGain(); wet.gain.value=.55;
+    const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=3200;
+    bus.connect(lp); lp.connect(master); bus.connect(verb); verb.connect(wet); wet.connect(master);
+    master.connect(duckG); duckG.connect(ctx.destination);
+  }
+  function piano(m,t,vel=.18,len=3.2){
+    const f=hz(m), g=ctx.createGain(), fl=ctx.createBiquadFilter();
+    fl.type="lowpass"; fl.frequency.setValueAtTime(Math.min(5200,f*7),t); fl.frequency.exponentialRampToValueAtTime(Math.max(300,f*1.6),t+len*.8);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vel,t+.012); g.gain.exponentialRampToValueAtTime(vel*.35,t+.5); g.gain.exponentialRampToValueAtTime(.0001,t+len);
+    const o1=ctx.createOscillator(); o1.type="triangle"; o1.frequency.value=f;
+    const o2=ctx.createOscillator(); o2.type="sine"; o2.frequency.value=f*2; const g2=ctx.createGain(); g2.gain.value=.22;
+    const o3=ctx.createOscillator(); o3.type="sine"; o3.frequency.value=f*1.003;
+    o1.connect(fl); o3.connect(fl); o2.connect(g2); g2.connect(fl); fl.connect(g); g.connect(bus);
+    [o1,o2,o3].forEach(o=>{o.start(t);o.stop(t+len+.1);});
+  }
+  function pad(ms,t,dur){
+    const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.035,t+1.6); g.gain.setValueAtTime(.035,t+dur-.4); g.gain.linearRampToValueAtTime(0,t+dur+1.4);
+    const fl=ctx.createBiquadFilter(); fl.type="lowpass"; fl.frequency.value=900; fl.connect(g); g.connect(bus);
+    ms.forEach(m=>{[0,-4].forEach(dt=>{const o=ctx.createOscillator(); o.type="sine"; o.frequency.value=hz(m+12); o.detune.value=dt; o.connect(fl); o.start(t); o.stop(t+dur+1.6);});});
+  }
+  function bar(i,t){
+    const c=CH[i%CH.length], mel=MEL[i%MEL.length];
+    piano(c[0]-12,t,.13,4.5); pad(c.slice(1),t,BEAT*4);
+    const arp=[c[0],c[1],c[2],c[3],c[2],c[1],c[2],c[3]];
+    arp.forEach((m,k)=>piano(m,t+k*BEAT/2+(Math.random()*.012),k%2?.06:.08,2.6));
+    if(i>=4) mel.forEach((m,k)=>{ if(m) piano(m,t+k*BEAT+(Math.random()*.02),.13,3.4); });
+  }
+  function sched(){ while(nextT<ctx.currentTime+.6){ bar(step,nextT); step++; nextT+=BEAT*4; } }
+  function start(){
+    init(); if(!ctx||playing) return; playing=true;
+    if(ctx.state!=="running") ctx.resume();
+    nextT=ctx.currentTime+.15; sched(); timer=setInterval(sched,150);
+    master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(master.gain.value,ctx.currentTime); master.gain.linearRampToValueAtTime(.85,ctx.currentTime+3);
+    syncBtn();
+  }
+  function stop(){
+    if(!ctx||!playing) return; playing=false; clearInterval(timer);
+    master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(master.gain.value,ctx.currentTime); master.gain.linearRampToValueAtTime(0,ctx.currentTime+1.2);
+    syncBtn();
+  }
+  function duck(on){ if(!ctx) return; duckG.gain.cancelScheduledValues(ctx.currentTime); duckG.gain.setValueAtTime(duckG.gain.value,ctx.currentTime); duckG.gain.linearRampToValueAtTime(on?0:1,ctx.currentTime+(on?.4:1.5)); }
+  function chime(){ if(!ctx||!playing) return; const t=ctx.currentTime+.05; [84,88,91,96,91,88,96].forEach((m,k)=>piano(m,t+k*.16,.07,2.4)); }
+  function syncBtn(){ const b=$("musicBtn"); if(!b) return; b.setAttribute("aria-pressed",playing?"true":"false"); b.setAttribute("aria-label",playing?"Turn music off":"Turn music on"); b.classList.toggle("muted",!playing); }
+  document.addEventListener("visibilitychange",()=>{ if(!ctx) return; if(document.hidden){ ctx.suspend(); } else if(playing){ ctx.resume(); } });
+  return {start,stop,duck,chime,get on(){return playing;},syncBtn};
+})();
+function musicPref(){ try{ return localStorage.getItem("museum-music")!=="off"; }catch(e){ return true; } }
+$("musicBtn").onclick=()=>{ if(Music.on){ Music.stop(); try{localStorage.setItem("museum-music","off");}catch(e){} } else { Music.start(); try{localStorage.setItem("museum-music","on");}catch(e){} } };
+Music.syncBtn();
+
 /* ---------- intro ---------- */
+
 let entered=false, isReady=false;
 function ready(){ isReady=true; }
 $("enter").onclick=()=>{
   entered=true;
+  if(musicPref()) Music.start();
   if(videoEl){ videoEl.play().then(()=>{ if(cur!==3) videoEl.pause(); }).catch(()=>{}); }
   $("intro").classList.add("gone");
   document.body.classList.remove("hidden-ui");
