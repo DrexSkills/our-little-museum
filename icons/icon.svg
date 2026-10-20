@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2C46E"/><stop offset="1" stop-color="#DE9A3C"/></linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".42" r=".55"><stop offset="0" stop-color="#FFF3D1" stop-opacity=".75"/><stop offset="1" stop-color="#FFF3D1" stop-opacity="0"/></radialGradient>
+    <linearGradient id="col" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFF6F0"/><stop offset=".7" stop-color="#FFF6F0"/><stop offset="1" stop-color="#F0D9CC"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- floor shadow -->
+  <ellipse cx="512" cy="812" rx="330" ry="34" fill="#7E1F2C" opacity=".18"/>
+  <!-- roof -->
+  <path d="M512 196 L836 402 Q850 412 834 418 L190 418 Q174 412 188 402 Z" fill="#7E1F2C"/>
+  <path d="M512 248 L752 392 L272 392 Z" fill="#9C2A3A"/>
+  <!-- heart in pediment -->
+  <path d="M512 372c-30-26-74-52-74-88 0-26 20-44 42-44 15 0 26 8 32 20 6-12 17-20 32-20 22 0 42 18 42 44 0 36-44 62-74 88z" fill="#FFF6F0"/>
+  <!-- beam -->
+  <rect x="206" y="430" width="612" height="44" rx="18" fill="#7E1F2C"/>
+  <!-- columns -->
+  <g fill="url(#col)">
+    <rect x="252" y="490" width="78" height="232" rx="30"/>
+    <rect x="390" y="490" width="78" height="232" rx="30"/>
+    <rect x="556" y="490" width="78" height="232" rx="30"/>
+    <rect x="694" y="490" width="78" height="232" rx="30"/>
+  </g>
+  <!-- steps -->
+  <rect x="200" y="734" width="624" height="40" rx="18" fill="#7E1F2C"/>
+  <rect x="164" y="780" width="696" height="36" rx="18" fill="#9C2A3A"/>
+  <!-- sparkles -->
+  <g fill="#FFF6F0">
+    <path d="M820 196 l12 32 32 12 -32 12 -12 32 -12 -32 -32 -12 32 -12z"/>
+    <path d="M196 250 l8 22 22 8 -22 8 -8 22 -8 -22 -22 -8 22 -8z" opacity=".85"/>
+  </g>
+</svg>
